@@ -1,0 +1,120 @@
+---
+title: "Estudio de Análisis de Sistemas de Medición (MSA) - Unifrutti S.A."
+author: "Ana Facundo, Idaluz Roman, Viviana Reyna, Rosario Timana, Milagros Tume"
+date: "2026-07-16"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    theme: cosmo
+    highlight: tango
+  pdf_document:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+library(readxl)
+library(dplyr)
+```
+
+# 1. Introducción
+El presente documento recopila el código fuente y la ejecución computacional del Análisis de Sistemas de Medición (MSA) aplicado a la gramera electrónica utilizada en el laboratorio de Control de Calidad de la empresa Unifrutti S.A. para el pesaje de paltas Hass.
+
+# 2. Estudio de Exactitud (Sesgo) y Linealidad
+Evaluamos el sesgo de la gramera electrónica utilizando las piezas patrón que cubren el rango operativo del calibre 20 (195g - 222g).
+
+```{r sesgo_linealidad}
+# Cargar datos de linealidad
+datos_lin <- read_excel("paltas_linealidad.xlsx")
+
+# Calcular el Sesgo (Bias)
+datos_lin$Sesgo <- datos_lin$Peso - datos_lin$Valor_Master
+
+# Modelo de regresión lineal para linealidad
+modelo_lin <- lm(Sesgo ~ Valor_Master, data = datos_lin)
+summary(modelo_lin)
+
+# Gráfico de Linealidad
+plot(datos_lin$Valor_Master, datos_lin$Sesgo, 
+     main = "Estudio de Linealidad de la Gramera Electrónica",
+     xlab = "Valor de Referencia (Master) [g]", 
+     ylab = "Sesgo (Bias) [g]", 
+     pch = 19, col = "blue")
+abline(modelo_lin, col = "red", lwd = 2)
+abline(h = 0, col = "black", lty = 2)
+```
+
+# 3. Estudio Gage R&R (Método ANOVA)
+Evaluamos la repetibilidad y reproducibilidad del sistema de medición mediante un diseño cruzado (10 piezas, 3 operadoras y 3 repeticiones, con una tolerancia de 15g).
+
+```{r estudio_gage_R&R}
+# Cargar datos del estudio Gage R&R
+datos_rr <- read_excel("datos_palta.xlsx")
+colnames(datos_rr) <- c("OrdenCorrida", "Parte", "Operador", "Medicion")
+
+datos_rr$Parte <- as.factor(datos_rr$Parte)
+datos_rr$Operador <- as.factor(datos_rr$Operador)
+
+# ANOVA con interacción
+anova_int <- aov(Medicion ~ Parte + Operador + Parte:Operador, data = datos_rr)
+summary(anova_int)
+
+# ANOVA final sin interacción (dado que p > 0.05 en la interacción)
+anova_fin <- aov(Medicion ~ Parte + Operador, data = datos_rr)
+res_fin <- summary(anova_fin)
+print(res_fin)
+```
+
+# 4. Tabla Resumen y Componentes de Varianza (Formato AIAG)
+Calculamos los componentes de varianza y la variación del estudio empleando el multiplicador $K = 6$ (estándar moderno de la 4ta Edición de AIAG / Minitab).
+
+```{r tabla_resumen_varianza}
+# Parámetros
+K <- 6
+p <- 10
+o <- 3
+r <- 3
+Tolerancia <- 15
+
+tabla_aov <- res_fin[[1]]
+CM_parte <- tabla_aov["Parte", "Mean Sq"]
+CM_operador <- tabla_aov["Operador", "Mean Sq"]
+CM_error <- tabla_aov["Residuals", "Mean Sq"]
+
+Var_Repetibilidad <- CM_error
+Var_Reproducibilidad <- max(0, (CM_operador - CM_error) / (p * r))
+Var_Parte <- max(0, (CM_parte - CM_error) / (o * r))
+Var_GRR <- Var_Repetibilidad + Var_Reproducibilidad
+Var_Total <- Var_GRR + Var_Parte
+
+SD_Rep <- sqrt(Var_Repetibilidad)
+SD_Reprod <- sqrt(Var_Reproducibilidad)
+SD_Parte <- sqrt(Var_Parte)
+SD_GRR <- sqrt(Var_GRR)
+SD_Total <- sqrt(Var_Total)
+
+VE_Rep <- K * SD_Rep
+VE_Reprod <- K * SD_Reprod
+VE_Parte <- K * SD_Parte
+VE_GRR <- K * SD_GRR
+VE_Total <- K * SD_Total
+
+# Tabla final tipo Manual Unidad 3
+Tabla_Reporte <- data.frame(
+  Fuente = c("Total R&R", "Repetibilidad", "Reproducibilidad", "Parte", "Total"),
+  Varianza = round(c(Var_GRR, Var_Repetibilidad, Var_Reproducibilidad, Var_Parte, Var_Total), 4),
+  Desv_Est = round(c(SD_GRR, SD_Rep, SD_Reprod, SD_Parte, SD_Total), 4),
+  Var_Est_6_DE = round(c(VE_GRR, VE_Rep, VE_Reprod, VE_Parte, VE_Total), 4),
+  Pct_Var = round(c((VE_GRR/VE_Total)*100, (VE_Rep/VE_Total)*100, (VE_Reprod/VE_Total)*100, (VE_Parte/VE_Total)*100, 100), 2),
+  Pct_Contr = round(c((Var_GRR/Var_Total)*100, (Var_Repetibilidad/Var_Total)*100, (Var_Reproducibilidad/Var_Total)*100, (Var_Parte/Var_Total)*100, 100), 2),
+  Pct_Tol = round(c((VE_GRR/Tolerancia)*100, (VE_Rep/Tolerancia)*100, (VE_Reprod/Tolerancia)*100, (VE_Parte/Tolerancia)*100, (VE_Total/Tolerancia)*100), 2)
+)
+
+knitr::kable(Tabla_Reporte, caption = "Reporte de Repetibilidad y Reproducibilidad")
+
+# Número de Categorías Distintas (NDC)
+NDC <- floor(1.41 * (SD_Parte / SD_GRR))
+cat("Número de Categorías Distintas (NDC):", NDC)
+```
+
