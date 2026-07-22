@@ -151,9 +151,8 @@ Estudio_Gage_RyR_Unifrutti_S.A./
 │   └── 03_analisis_GageR&R_ANOVA.R
 │
 ├── resultados/
-│   ├── graficos/
-│   ├── tablas/
-│   └── reportes/
+│   ├── analisis_MSA.html
+│   ├── analisis_MSA.pdf
 │
 ├── README.md
 └── LICENSE
