@@ -138,7 +138,7 @@ Para garantizar la reproducibilidad y la validación cruzada de resultados, el e
 # 📁 Estructura del Repositorio
 
 ```text
-MSA-Unifrutti/
+Estudio_Gage_RyR_Unifrutti_S.A./
 │
 ├── datos/
 │   ├── datos_palta.xlsx
