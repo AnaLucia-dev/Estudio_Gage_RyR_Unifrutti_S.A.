@@ -154,8 +154,7 @@ Estudio_Gage_RyR_Unifrutti_S.A./
 │   ├── analisis_MSA.html
 │   ├── analisis_MSA.pdf
 │
-├── README.md
-└── LICENSE
+└── README.md
 ```
 
 ---
