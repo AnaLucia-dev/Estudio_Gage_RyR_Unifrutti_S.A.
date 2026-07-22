@@ -146,7 +146,9 @@ MSA-Unifrutti/
 │
 ├── scripts/
 │   ├── analisis_MSA.Rmd
-│   └── analisis_MSA.R
+│   └── 01_analisis_sesgo_linealidad.R
+│   └── 02_analisis_GageR&R_Medias_Rangos.R
+│   └── 03_analisis_GageR&R_ANOVA.R
 │
 ├── resultados/
 │   ├── graficos/
